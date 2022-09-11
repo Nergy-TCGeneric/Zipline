@@ -1,6 +1,6 @@
 import unittest
 import requests
-from baekjoon_tui import *
+from boj_parsers import *
 
 class ParserTestCase(unittest.TestCase):
     category_parser: ProblemCategoryParser

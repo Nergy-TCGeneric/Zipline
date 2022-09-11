@@ -3,11 +3,6 @@ from dataclasses import dataclass
 from dataclasses import field
 from html.parser import HTMLParser
 
-'''
-    Baekjoon TUI
-    For who don't want to open gui browsers for some reason
-'''
-
 @dataclass
 class ProblemCategory:
     id: int = -1
