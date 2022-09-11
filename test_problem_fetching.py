@@ -5,6 +5,7 @@ from baekjoon_tui import *
 class ParserTestCase(unittest.TestCase):
     category_parser: ProblemCategoryParser
     plist_parser: ProblemListParser
+    problem_parser: ProblemParser
 
     def setUp(self):
         category_req = requests.get("https://acmicpc.net/step")
@@ -14,6 +15,10 @@ class ParserTestCase(unittest.TestCase):
         plist_req = requests.get("https://acmicpc.net/step/1")
         self.plist_parser = ProblemListParser()
         self.plist_parser.feed(plist_req.text)
+
+        problem_req = requests.get("https://acmicpc.net/problem/2557")
+        self.problem_parser = ProblemParser()
+        self.problem_parser.feed(problem_req.text)
 
     def test_should_get_one_problem_category(self):
         # Extracting very first category
@@ -48,6 +53,21 @@ class ParserTestCase(unittest.TestCase):
             self.assertNotEqual(preview.title, '')
             self.assertGreater(preview.accepted_submits, -1)
             self.assertGreater(preview.submits, -1)
+
+    def test_should_get_problem_details(self):
+        # Nothing to mention any further, do same thing as did
+        detail = self.problem_parser.get_problem_details()
+
+        # Comparing with actual problem, description and id must be identical
+        self.assertEqual(detail.preview.id, 2557)
+        self.assertEqual(detail.preview.title, "Hello World")
+        self.assertGreater(detail.preview.accepted_submits, -1)
+        self.assertGreater(detail.preview.submits, -1)
+        self.assertEqual(detail.time_limit, "1 초")
+        self.assertEqual(detail.memory_limit, "128 MB")
+        self.assertEqual(detail.description, "Hello World!를 출력하시오.")
+        self.assertEqual(detail.input_desc, "없음")
+        self.assertEqual(detail.output_desc, "Hello World!를 출력하시오.")
 
 if __name__ == "__main__":
     unittest.main()

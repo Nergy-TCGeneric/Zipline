@@ -27,8 +27,8 @@ class ProblemPreview:
 @dataclass
 class Problem:
     preview: ProblemPreview
-    time_limit: int = -1
-    memory_limit: int = -1 # in kbyte
+    time_limit: str = ''
+    memory_limit: str = ''
     description: str = ''
     input_desc: str = ''
     output_desc: str = ''
@@ -141,16 +141,67 @@ class ProblemListParser(HTMLParser):
         return self.problems
 
 class ProblemParser(HTMLParser):
+    current_problem: Problem = Problem(ProblemPreview())
+    is_parsing_table: bool = False
+    table_index: int = 0
+    parsing_id: str
+
     def handle_starttag(self, tag, attrs):
-        print("start tag: ", tag)
+        '''
+            HEAD
+                <meta name="problem-id" content="(problem id)">
+            BODY
+                <span id="problem_title"> (title) </span>
+                <div id="problem_description"> (desc) </div>
+                <div id="problem_input"> (input desc) </div>
+                <div id="problem_output"> (output desc) </div>
+                <div id="problem_limit"> (limit desc) </div>
+                <pre id="sample-input-[N]> (input testcase) </pre>
+                <pre id="sample-output-[N]> (output testcase) </pre>
+                <div id="problem_hint> (hint desc) </div>
+            TBODY
+                0           1           2.       3.                4.         5.
+                time limit  mem. limit  submits  accepted submits  (unused)   (unused)
+        '''
+        if tag == "tbody":
+            self.is_parsing_table = True
+        if tag == "tr":
+            self.table_index = 0
+        if len(attrs) > 0 and attrs[0][0] == "id":
+            self.parsing_id = attrs[0][1]
+        if tag == "meta" and attrs[0][1] == "problem-id":
+            self.current_problem.preview.id = int(attrs[1][1])
     
     def handle_data(self, data):
-        print("data: ", data)
+        if self.is_parsing_table:
+            if self.table_index == 0:
+                self.current_problem.time_limit = data.rstrip()
+            elif self.table_index == 1:
+                self.current_problem.memory_limit = data.rstrip()
+            elif self.table_index == 2:
+                self.current_problem.preview.submits = int(data)
+            elif self.table_index == 3:
+                self.current_problem.preview.accepted_submits = int(data)
+
+        if hasattr(self, "parsing_id"):
+            if self.parsing_id == "problem_title":
+                self.current_problem.preview.title = data
+            elif self.parsing_id == "problem_description":
+                self.current_problem.description = data.strip()
+            elif self.parsing_id == "problem_input":
+                self.current_problem.input_desc = data.strip()
+            elif self.parsing_id == "problem_output":
+                self.current_problem.output_desc = data.strip()
+
+        # FIXME: testcases and hints will be added soon
 
     def handle_endtag(self, tag):
-        print("end tag: ", tag)
+        if hasattr(self, "parsing_id"):
+            del self.parsing_id
+        if tag == "tbody":
+            self.is_parsing_table = False
+        if tag == "td" and self.is_parsing_table:
+            self.table_index += 1
 
-baekjoon_req = requests.get("https://acmicpc.net/step")
-parser = ProblemCategoryParser()
-parser.feed(baekjoon_req.text)
-# print(baekjoon_req.text)
+    def get_problem_details(self) -> Problem:
+        return self.current_problem
