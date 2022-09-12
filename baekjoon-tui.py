@@ -5,12 +5,28 @@
 '''
 
 import sys
-import requests
+from enum import Enum
+from requests import get, Response
 from boj_parsers import *
 from string import Template
 
 TUI_VERSION = "0.0.1"
 STEP = -1
+
+class QueryType(Enum):
+    PROBLEM = 1
+    PROBLEM_LIST = 2
+    PROBLEM_CATEGORY = 3
+
+def query_request(qtype: QueryType, id: int = -1) -> Response:
+    if qtype == QueryType.PROBLEM:
+        req = requests.get(f"https://acmicpc.net/problem/{id}")
+    elif qtype == QueryType.PROBLEM_LIST:
+        req = requests.get(f"https://acmicpc.net/step/{id}")
+    elif qtype == QueryType.PROBLEM_CATEGORY:
+        req = requests.get(f"https://acmicpc.net/step")
+    
+    return req
 
 def print_usage():
     print("Usage: baekjoon (-c (id) | -l (id) | -p <id>) (-s <file path>)")
@@ -22,7 +38,7 @@ def print_problem_categories(id: int):
     pass
 
 def print_problem_details(id: int):
-    req = requests.get(f"https://acmicpc.net/problem/{id}")
+    req = query_request(QueryType.PROBLEM, id)
     if req.status_code == 404:
         print("no such problem with given id")
         return
