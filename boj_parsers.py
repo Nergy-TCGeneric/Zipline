@@ -164,6 +164,7 @@ class ProblemParser(HTMLParser):
             self.table_index = 0
         if len(attrs) > 0 and attrs[0][0] == "id":
             self.parsing_id = attrs[0][1]
+
         if tag == "meta" and attrs[0][1] == "problem-id":
             self.current_problem.preview.id = int(attrs[1][1])
     
@@ -182,16 +183,16 @@ class ProblemParser(HTMLParser):
             if self.parsing_id == "problem_title":
                 self.current_problem.preview.title = data
             elif self.parsing_id == "problem_description":
-                self.current_problem.description = data.strip()
+                self.current_problem.description += data.lstrip()
             elif self.parsing_id == "problem_input":
-                self.current_problem.input_desc = data.strip()
+                self.current_problem.input_desc += data.lstrip()
             elif self.parsing_id == "problem_output":
-                self.current_problem.output_desc = data.strip()
+                self.current_problem.output_desc += data.lstrip()
 
         # FIXME: testcases and hints will be added soon
 
     def handle_endtag(self, tag):
-        if hasattr(self, "parsing_id"):
+        if (tag == "div" or tag == "pre" or tag == "span") and hasattr(self, "parsing_id"):
             del self.parsing_id
         if tag == "tbody":
             self.is_parsing_table = False

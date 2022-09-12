@@ -7,7 +7,8 @@ class ParserTestCase(unittest.TestCase):
     plist_parser: ProblemListParser
     problem_parser: ProblemParser
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         category_req = requests.get("https://acmicpc.net/step")
         self.category_parser = ProblemCategoryParser()
         self.category_parser.feed(category_req.text)
