@@ -35,7 +35,17 @@ def print_problem_lists(id: int):
     pass
 
 def print_problem_categories(id: int):
-    pass
+    req = query_request(QueryType.PROBLEM_CATEGORY, id)
+    if req.status_code == 404:
+        print("no such problem category with given id")
+        return
+    
+    parser = ProblemCategoryParser()
+    parser.feed(req.text)
+    categories = parser.get_all_problem_category()
+
+    for category in categories:
+        print(f"{category.id} {category.title} - (0/{category.total_count})")
 
 def print_problem_details(id: int):
     req = query_request(QueryType.PROBLEM, id)
