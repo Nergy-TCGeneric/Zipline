@@ -32,7 +32,17 @@ def print_usage():
     print("Usage: baekjoon (-c (id) | -l (id) | -p <id>) (-s <file path>)")
 
 def print_problem_lists(id: int):
-    pass
+    req = query_request(QueryType.PROBLEM_LIST, id)
+    if req.status_code == 404:
+        print("no such problem list with given id")
+        return
+    
+    parser = ProblemListParser()
+    parser.feed(req.text)
+    previews = parser.get_all_problem_previews()
+
+    for i in range(0, len(previews)):
+        print(f"{i+1} {previews[i].title}({previews[i].id}) - {previews[i].accepted_submits}/{previews[i].submits}")
 
 def print_problem_categories(id: int):
     req = query_request(QueryType.PROBLEM_CATEGORY, id)
