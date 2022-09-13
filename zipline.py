@@ -1,6 +1,6 @@
 
 '''
-    Baekjoon TUI
+    Zipline
     For who even don't want to open gui browsers just to do tedious works
 '''
 
@@ -9,8 +9,9 @@ from enum import Enum
 from requests import get, Response
 from boj_parsers import *
 from string import Template
+from getpass import getpass
 
-TUI_VERSION = "0.0.1"
+VERSION = "0.1.0"
 STEP = -1
 
 class QueryType(Enum):
@@ -28,8 +29,14 @@ def query_request(qtype: QueryType, id: int = -1) -> Response:
     
     return req
 
+def login():
+    user_id = input("ID: ")
+    user_pw = getpass("Password: ")
+    # print(user_id, user_pw)
+    s = requests.Session()
+
 def print_usage():
-    print("Usage: baekjoon (-c (id) | -l (id) | -p <id>) (-s <file path>)")
+    print("Usage: zipline (-c (id) | -l (id) | -p <id>) (-s <file path>) (-a)")
 
 def print_problem_lists(id: int):
     req = query_request(QueryType.PROBLEM_LIST, id)
@@ -113,10 +120,12 @@ def parse_commands(argv: list[str]):
             else:
                 print("id must be specified")
                 print_usage()
+        elif argv[i] == "-a":
+            login()
 
 if __name__ == "__main__":
     if len(sys.argv)-1 == 0:
-        print(f"Baekjoon TUI {TUI_VERSION}")
+        print(f"Zipline {VERSION} - A TUI for BOJ")
         print_usage()
         sys.exit()
 
