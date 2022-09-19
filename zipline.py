@@ -5,8 +5,10 @@
 '''
 
 import sys
+import browser_cookie3
+
 from enum import Enum
-from requests import get, Response
+from requests import get, Response, Session
 from boj_parsers import *
 from string import Template
 from getpass import getpass
@@ -20,20 +22,16 @@ class QueryType(Enum):
     PROBLEM_CATEGORY = 3
 
 def query_request(qtype: QueryType, id: int = -1) -> Response:
+    boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
+
     if qtype == QueryType.PROBLEM:
-        req = requests.get(f"https://acmicpc.net/problem/{id}")
+        req = requests.get(f"https://acmicpc.net/problem/{id}", cookies=boj_cookie)
     elif qtype == QueryType.PROBLEM_LIST:
-        req = requests.get(f"https://acmicpc.net/step/{id}")
+        req = requests.get(f"https://acmicpc.net/step/{id}", cookies=boj_cookie)
     elif qtype == QueryType.PROBLEM_CATEGORY:
-        req = requests.get(f"https://acmicpc.net/step")
+        req = requests.get(f"https://acmicpc.net/step", cookies=boj_cookie)
     
     return req
-
-def login():
-    user_id = input("ID: ")
-    user_pw = getpass("Password: ")
-    # print(user_id, user_pw)
-    s = requests.Session()
 
 def print_usage():
     print("Usage: zipline (-c (id) | -l (id) | -p <id>) (-s <file path>) (-a)")
@@ -62,7 +60,7 @@ def print_problem_categories(id: int):
     categories = parser.get_all_problem_category()
 
     for category in categories:
-        print(f"{category.id} {category.title} - (0/{category.total_count})")
+        print(f"{category.id} {category.title} - ({category.solved_count}/{category.total_count})")
 
 def print_problem_details(id: int):
     req = query_request(QueryType.PROBLEM, id)

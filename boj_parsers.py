@@ -9,7 +9,7 @@ class ProblemCategory:
     title: str = ''
     description: str = ''
     total_count: int = -1
-    solved_count: int = -1
+    solved_count: int = 0
 
 @dataclass
 class ProblemPreview:
