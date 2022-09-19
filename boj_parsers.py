@@ -210,3 +210,13 @@ class ProblemParser(HTMLParser):
 
     def get_problem_details(self) -> Problem:
         return self.current_problem
+
+class CSRFTokenParser(HTMLParser):
+    csrf_token: str = ''
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "input" and attrs[1][1] == "csrf_key":
+            self.csrf_token = attrs[2][1]
+
+    def get_csrf_token(self) -> str:
+        return self.csrf_token

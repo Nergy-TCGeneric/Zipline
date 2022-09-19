@@ -1,14 +1,18 @@
 import unittest
 import requests
+import browser_cookie3
 from boj_parsers import *
 
 class ParserTestCase(unittest.TestCase):
     category_parser: ProblemCategoryParser
     plist_parser: ProblemListParser
     problem_parser: ProblemParser
+    csrf_parser: CSRFTokenParser
 
     @classmethod
     def setUpClass(self):
+        boj_cookies = browser_cookie3.chrome(domain_name="acmicpc.net")
+
         category_req = requests.get("https://acmicpc.net/step")
         self.category_parser = ProblemCategoryParser()
         self.category_parser.feed(category_req.text)
@@ -20,6 +24,10 @@ class ParserTestCase(unittest.TestCase):
         problem_req = requests.get("https://acmicpc.net/problem/2557")
         self.problem_parser = ProblemParser()
         self.problem_parser.feed(problem_req.text)
+
+        submit_req = requests.get("https://acmicpc.net/submit/2557", cookies=boj_cookies)
+        self.csrf_parser = CSRFTokenParser()
+        self.csrf_parser.feed(submit_req.text)
 
     def test_should_get_one_problem_category(self):
         # Extracting very first category
@@ -69,6 +77,11 @@ class ParserTestCase(unittest.TestCase):
         self.assertEqual(detail.description, "Hello World!를 출력하시오.")
         self.assertEqual(detail.input_desc, "없음")
         self.assertEqual(detail.output_desc, "Hello World!를 출력하시오.")
+
+    def test_should_fetch_every_data_to_prepare_solution_submit(self):
+        csrf = self.csrf_parser.get_csrf_token()
+
+        self.assertNotEqual(csrf, '')
 
 if __name__ == "__main__":
     unittest.main()
