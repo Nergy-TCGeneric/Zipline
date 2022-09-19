@@ -60,7 +60,8 @@ def print_problem_categories(id: int):
     categories = parser.get_all_problem_category()
 
     for category in categories:
-        print(f"{category.id} {category.title} - ({category.solved_count}/{category.total_count})")
+        color = "\033[32m" if category.solved_count == category.total_count else "\033[0m"
+        print(f"{color}{category.id} {category.title} - ({category.solved_count}/{category.total_count}) \033[0m")
 
 def print_problem_details(id: int):
     req = query_request(QueryType.PROBLEM, id)
@@ -73,7 +74,7 @@ def print_problem_details(id: int):
     detail = parser.get_problem_details()
 
     template = Template("""
-        $id ($title)
+        $color $id ($title) $reset_color
         - $tlimit, $mem_limit 내로 해결해야 함
         - 현재 $submits 번 제출되었고, 그 중 $accepted_submits 개가 정답 처리됨
         
@@ -86,6 +87,8 @@ def print_problem_details(id: int):
         출력:
          $output_desc
     """).substitute(
+        color="\033[32m" if detail.preview.is_accepted else "\033[0m",
+        reset_color="\033[0m",
         id=detail.preview.id,
         title=detail.preview.title,
         desc=detail.description,

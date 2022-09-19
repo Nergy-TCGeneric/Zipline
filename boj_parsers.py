@@ -18,6 +18,7 @@ class ProblemPreview:
     labels: str = ''
     accepted_submits: int = -1
     submits: int = -1
+    is_accepted: bool = False
 
 @dataclass
 class Problem:
@@ -93,6 +94,10 @@ class ProblemListParser(HTMLParser):
             self.current_preview = ProblemPreview()
             self.table_index = 0
 
+        if tag == "span" and len(attrs[0][1].split()) > 1:
+            if attrs[0][1].split()[1] == "problem-label-ac":
+                self.current_preview.is_accepted = True
+
     def handle_data(self, data):
         '''
             0          1           2       3                4          5        6
@@ -164,6 +169,10 @@ class ProblemParser(HTMLParser):
             self.table_index = 0
         if len(attrs) > 0 and attrs[0][0] == "id":
             self.parsing_id = attrs[0][1]
+
+        if tag == "span" and len(attrs[0][1].split()) > 1:
+            if attrs[0][1].split()[1] == "problem-label-ac":
+                self.current_problem.preview.is_accepted = True
 
         if tag == "meta" and attrs[0][1] == "problem-id":
             self.current_problem.preview.id = int(attrs[1][1])
