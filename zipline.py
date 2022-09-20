@@ -122,14 +122,12 @@ def submit_solution(id: int, filename: str):
         form = {
             'problem_id': id,
             'language': 0, # See https://help.acmicpc.net/language/info for details.
-            'code_open': 'open',
+            'code_open': 'close',
             'source': src,
             'csrf_key': csrf_token
         }
 
-        # TODO: Code goes here. Need to send data through proxy to see what's going on here.
-        # This ends up with error, 'This distribution is not configured to allow the HTTP request method that was used for this request.'
-        res = requests.post(url=f"https://acmicpc.net/submit/{id}", cookies=boj_cookie)
+        res = requests.post(url=f"https://www.acmicpc.net/submit/{id}", cookies=boj_cookie, data=form)
         print(res.text)
 
 def parse_commands(argv: list[str]):
