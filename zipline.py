@@ -6,6 +6,8 @@
 
 import sys
 import browser_cookie3
+import websocket
+import json
 
 from collections import namedtuple
 from enum import Enum
@@ -15,6 +17,7 @@ from string import Template
 
 VERSION = "0.1.0"
 STEP = -1
+PUSHER_TOKEN = "a2cb611847131e062b32"
 
 class QueryType(Enum):
     PROBLEM = 1
@@ -127,6 +130,10 @@ def submit_solution(id: int, filename: str):
             'csrf_key': csrf_token
         }
 
+        # Connect to websocket first
+        ws = websocket.WebSocket()
+        ws.connect(f"wss://ws-ap1.pusher.com/app/{PUSHER_TOKEN}?protocol=7&client=js&version=4.2.2&flash=false")
+        
         res = requests.post(url=f"https://www.acmicpc.net/submit/{id}", cookies=boj_cookie, data=form)
 
         start_index = res.text.find("solution_ids") + len("solution_ids = ")
@@ -134,7 +141,21 @@ def submit_solution(id: int, filename: str):
         list_literal = res.text[start_index:end_index]
 
         submit_list = parse_submit_list_literal(list_literal)
-        print(submit_list)
+        ws.send('{"event":"pusher:subscribe", "data":{"channel":"solution-%i"}}' % submit_list[0].solution_id)
+
+        end_of_judge_range = range(4, 13)
+        final_result = 0
+
+        while True:
+            received = ws.recv()
+            replaced = received.replace('\\', '').replace("\"{", "{").replace("}\"", "}")
+            parsed = json.loads(replaced)
+            
+            if parsed['event'] == 'update' and parsed['data']['result'] in end_of_judge_range:
+                final_result = parsed['data']['result']
+                break
+
+        print(final_result)
 
 def parse_submit_list_literal(literal: str) -> list[namedtuple]:
     # From newest to oldest order
