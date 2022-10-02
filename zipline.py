@@ -7,11 +7,11 @@
 import sys
 import browser_cookie3
 
+from collections import namedtuple
 from enum import Enum
 from requests import get, Response, Request, Session
 from boj_parsers import *
 from string import Template
-from getpass import getpass
 
 VERSION = "0.1.0"
 STEP = -1
@@ -128,7 +128,26 @@ def submit_solution(id: int, filename: str):
         }
 
         res = requests.post(url=f"https://www.acmicpc.net/submit/{id}", cookies=boj_cookie, data=form)
-        print(res.text)
+
+        start_index = res.text.find("solution_ids") + len("solution_ids = ")
+        end_index = res.text.find(";", start_index)
+        list_literal = res.text[start_index:end_index]
+
+        submit_list = parse_submit_list_literal(list_literal)
+        print(submit_list)
+
+def parse_submit_list_literal(literal: str) -> list[namedtuple]:
+    # From newest to oldest order
+    parsed = []
+    submit_list = literal.replace('[', '').replace(']', '').split(',')
+
+    # Store everything into tuple except last element, as it's empty
+    for i in range(0, len(submit_list) - 1, 2):
+        submit_info = namedtuple('SubmitInfo', ['solution_id', 'status_code'])
+        t = submit_info(int(submit_list[i]), int(submit_list[i+1]))
+        parsed.append(t)
+    
+    return parsed
 
 def parse_commands(argv: list[str]):
     for i in range(0, len(argv)):
