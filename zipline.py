@@ -10,7 +10,7 @@ import websocket
 import json
 
 from collections import namedtuple
-from enum import Enum
+from enum import IntEnum, unique
 from requests import get, Response, Request, Session
 from boj_parsers import *
 from string import Template
@@ -19,11 +19,61 @@ VERSION = "0.1.0"
 STEP = -1
 PUSHER_TOKEN = "a2cb611847131e062b32"
 
-class QueryType(Enum):
+@unique
+class QueryType(IntEnum):
     PROBLEM = 1
     PROBLEM_LIST = 2
     PROBLEM_CATEGORY = 3
     SUBMIT = 4
+
+@unique
+class JudgeResult(IntEnum):
+    PENDING_JUDGE = 0
+    PENDING_REJUDGE = 1
+    PREPARING_JUDGE = 2
+    JUDGING = 3
+    ACCEPTED = 4
+    PRESENTATION_ERROR = 5,
+    WRONG_ANSWER = 6,
+    TIME_EXCEEDED = 7,
+    MEMORY_EXCEEDED = 8,
+    OUTPUT_EXCEEDED = 9,
+    RUNTIME_ERROR = 10,
+    COMPILE_ERROR = 11,
+    UNAVAILABLE = 12,
+    PARTIALLY_ACCEPTED = 15
+
+    def __str__(self) -> str:
+        if self.value == 0:
+            return "기다리는 중"
+        elif self.value == 1:
+            return "재채점을 기다리는 중"
+        elif self.value == 2:
+            return "채점 준비 중"
+        elif self.value == 3:
+            return "채점 중"
+        elif self.value == 4:
+            return "맞았습니다!"
+        elif self.value == 5:
+            return "출력 형식이 잘못되었습니다"
+        elif self.value == 6:
+            return "틀렸습니다"
+        elif self.value == 7:
+            return "시간 초과"
+        elif self.value == 8:
+            return "메모리 초과"
+        elif self.value == 9:
+            return "출력 초과"
+        elif self.value == 10:
+            return "런타임 오류"
+        elif self.value == 11:
+            return "컴파일 오류"
+        elif self.value == 12:
+            return "채점 불가능"
+        elif self.value == 15:
+            return "일부만 맞았습니다!"
+        else:
+            raise Exception(f"not implemented for given value: {self.value}")
 
 def query_request(qtype: QueryType, id: int = -1) -> Response:
     boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
@@ -152,7 +202,7 @@ def submit_solution(id: int, filename: str):
             parsed = json.loads(replaced)
             
             if parsed['event'] == 'update' and parsed['data']['result'] in end_of_judge_range:
-                final_result = parsed['data']['result']
+                final_result = JudgeResult(int(parsed['data']['result']))
                 break
 
         print(final_result)
