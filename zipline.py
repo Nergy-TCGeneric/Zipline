@@ -20,6 +20,7 @@ from string import Template
 VERSION = "0.1.0"
 STEP = -1
 PUSHER_TOKEN = "a2cb611847131e062b32"
+PADDING = 8
 
 @unique
 class QueryType(IntEnum):
@@ -76,6 +77,38 @@ class JudgeResult(IntEnum):
             return "일부만 맞았습니다!"
         else:
             raise Exception(f"not implemented for given value: {self.value}")
+
+    def get_color_code(self) -> int:
+        if self.value == 0:
+            return 90
+        elif self.value == 1:
+            return 90
+        elif self.value == 2:
+            return 37
+        elif self.value == 3:
+            return 37
+        elif self.value == 4:
+            return 32
+        elif self.value == 5:
+            return 91
+        elif self.value == 6:
+            return 31
+        elif self.value == 7:
+            return 91
+        elif self.value == 8:
+            return 91
+        elif self.value == 9:
+            return 91
+        elif self.value == 10:
+            return 95
+        elif self.value == 11:
+            return 95
+        elif self.value == 12:
+            return 90
+        elif self.value == 15:
+            return 93
+        else:
+            raise Exception(f"color code not implemented for {self.value}")
 
 def query_request(qtype: QueryType, id: int = -1) -> Response:
     boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
@@ -188,6 +221,7 @@ def submit_solution(id: int, filename: str):
         
         res = requests.post(url=f"https://www.acmicpc.net/submit/{id}", cookies=boj_cookie, data=form)
 
+        # Extract submit list(represented in js array) from response body
         start_index = res.text.find("solution_ids") + len("solution_ids = ")
         end_index = res.text.find(";", start_index)
         list_literal = res.text[start_index:end_index]
@@ -196,30 +230,36 @@ def submit_solution(id: int, filename: str):
         ws.send('{"event":"pusher:subscribe", "data":{"channel":"solution-%i"}}' % submit_list[0].solution_id)
 
         end_of_judge_range = range(4, 13)
-        final_result = JudgeResult.PENDING_JUDGE
+        current_result = JudgeResult.PENDING_JUDGE
+        prepared_text = ''
 
-        print("채점 준비중..")
+        print(f"{id}번 문제 - 채점 준비중..")
         while True:
             received = ws.recv()
             # Because received json contains json object 'literal', we need to make it as an actual object
             replaced = received.replace('\\', '').replace("\"{", "{").replace("}\"", "}")
             parsed = json.loads(replaced)
 
+            if parsed['event'] == 'update':
+                current_result = JudgeResult(int(parsed['data']['result']))
+
+            # Prepare text color first
             term_size = os.get_terminal_size()
+            color_code = current_result.get_color_code()
+            print(f'\033[{color_code}m', end='')
+
             if 'progress' in parsed['data']:
                 progress = int(parsed['data']['progress'])
-                padding = 8
-                prog_bar_width = math.floor((term_size.columns - padding) * progress / 100)
+                prog_bar_width = math.floor((term_size.columns - PADDING) * progress / 100)
+                prepared_text = '\r{0:<{pad}}{1}'.format(f"{progress}%", '▓' * prog_bar_width, pad=PADDING)
 
-                print('\r' + '▓' * prog_bar_width, end='')
-                print(' ' * (term_size.columns - prog_bar_width - len("100%")), end='')
-                print(f"{progress}%", end='')
-            
-            if parsed['event'] == 'update' and parsed['data']['result'] in end_of_judge_range:
-                final_result = JudgeResult(int(parsed['data']['result']))
+            print(prepared_text, end='')
+            if current_result in end_of_judge_range:
                 break
-
-        print(final_result)
+        
+        # Add a newline for prettier print
+        print()
+        print(current_result)
 
 def parse_submit_list_literal(literal: str) -> list[namedtuple]:
     # From newest to oldest order
