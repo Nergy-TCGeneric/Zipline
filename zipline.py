@@ -5,9 +5,11 @@
 '''
 
 import sys
+import os
 import browser_cookie3
 import websocket
 import json
+import math
 
 from collections import namedtuple
 from enum import IntEnum, unique
@@ -170,8 +172,8 @@ def submit_solution(id: int, filename: str):
 
     boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
 
-    with open(filename) as filedata:
-        src = filedata.read()
+    with open(filename) as source_file:
+        src = source_file.read()
         form = {
             'problem_id': id,
             'language': 0, # See https://help.acmicpc.net/language/info for details.
@@ -194,12 +196,24 @@ def submit_solution(id: int, filename: str):
         ws.send('{"event":"pusher:subscribe", "data":{"channel":"solution-%i"}}' % submit_list[0].solution_id)
 
         end_of_judge_range = range(4, 13)
-        final_result = 0
+        final_result = JudgeResult.PENDING_JUDGE
 
+        print("채점 준비중..")
         while True:
             received = ws.recv()
+            # Because received json contains json object 'literal', we need to make it as an actual object
             replaced = received.replace('\\', '').replace("\"{", "{").replace("}\"", "}")
             parsed = json.loads(replaced)
+
+            term_size = os.get_terminal_size()
+            if 'progress' in parsed['data']:
+                progress = int(parsed['data']['progress'])
+                padding = 8
+                prog_bar_width = math.floor((term_size.columns - padding) * progress / 100)
+
+                print('\r' + '▓' * prog_bar_width, end='')
+                print(' ' * (term_size.columns - prog_bar_width - len("100%")), end='')
+                print(f"{progress}%", end='')
             
             if parsed['event'] == 'update' and parsed['data']['result'] in end_of_judge_range:
                 final_result = JudgeResult(int(parsed['data']['result']))
