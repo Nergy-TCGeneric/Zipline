@@ -17,7 +17,7 @@ from requests import get, Response, Request, Session
 from boj_parsers import *
 from string import Template
 
-VERSION = "0.1.0"
+VERSION = "0.3.0"
 STEP = -1
 PUSHER_TOKEN = "a2cb611847131e062b32"
 PADDING = 8
@@ -227,6 +227,7 @@ def submit_solution(id: int, filename: str):
         list_literal = res.text[start_index:end_index]
 
         submit_list = parse_submit_list_literal(list_literal)
+        # To get a real-time progress, we need to subscribe channel first
         ws.send('{"event":"pusher:subscribe", "data":{"channel":"solution-%i"}}' % submit_list[0].solution_id)
 
         end_of_judge_range = range(4, 13)
