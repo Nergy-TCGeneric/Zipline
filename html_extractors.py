@@ -1,4 +1,6 @@
 import requests
+
+from collections import namedtuple
 from dataclasses import dataclass
 from dataclasses import field
 from html.parser import HTMLParser
@@ -21,7 +23,7 @@ class ProblemPreview:
     is_accepted: bool = False
 
 @dataclass
-class Problem:
+class ProblemDetail:
     preview: ProblemPreview
     time_limit: str = ''
     memory_limit: str = ''
@@ -141,7 +143,7 @@ class ProblemListParser(HTMLParser):
         return self.problems
 
 class ProblemParser(HTMLParser):
-    current_problem: Problem = Problem(ProblemPreview())
+    current_problem: ProblemDetail = ProblemDetail(ProblemPreview())
     is_parsing_table: bool = False
     table_index: int = 0
     parsing_id: str
@@ -208,7 +210,7 @@ class ProblemParser(HTMLParser):
         if tag == "td" and self.is_parsing_table:
             self.table_index += 1
 
-    def get_problem_details(self) -> Problem:
+    def get_problem_details(self) -> ProblemDetail:
         return self.current_problem
 
 class CSRFTokenParser(HTMLParser):
@@ -220,3 +222,46 @@ class CSRFTokenParser(HTMLParser):
 
     def get_csrf_token(self) -> str:
         return self.csrf_token
+
+def extract_all_problem_categories(html: str) -> list[ProblemCategory]:
+    parser = ProblemCategoryParser()
+    parser.feed(html)
+    return parser.get_all_problem_category()
+
+def extract_all_problem_previews(html: str) -> list[ProblemPreview]:
+    parser = ProblemListParser()
+    parser.feed(html)
+    return parser.get_all_problem_previews()
+
+def extract_problem_detail(html: str) -> ProblemDetail:
+    parser = ProblemParser()
+    parser.feed(html)
+    return parser.get_problem_details()
+
+def extract_csrf_token(html: str) -> str:
+    parser = CSRFTokenParser()
+    parser.feed(html)
+    return parser.get_csrf_token()
+
+def extract_submit_lists(html: str) -> list[namedtuple]:
+    list_literal = _extract_submit_list_literal(html)
+    return _parse_submit_list_literal(list_literal)
+
+def _extract_submit_list_literal(html: str) -> str:
+    start_index = html.find("solution_ids") + len("solution_ids = ")
+    end_index = html.find(";", start_index)
+    list_literal = html[start_index:end_index]
+
+    return list_literal
+
+def _parse_submit_list_literal(literal: str) -> list[namedtuple]:
+    parsed = []
+    submit_list = literal.replace('[', '').replace(']', '').split(',')
+
+    # Store everything into tuple from newest to oldest except last element, as it's empty
+    for i in range(0, len(submit_list) - 1, 2):
+        submit_info = namedtuple('SubmitInfo', ['solution_id', 'status_code'])
+        t = submit_info(int(submit_list[i]), int(submit_list[i+1]))
+        parsed.append(t)
+    
+    return parsed

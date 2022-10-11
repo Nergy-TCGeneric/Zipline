@@ -6,6 +6,7 @@
 
 import sys
 import os
+import requests
 import browser_cookie3
 import websocket
 import json
@@ -14,7 +15,7 @@ import math
 from collections import namedtuple
 from enum import IntEnum, unique
 from requests import get, Response, Request, Session
-from boj_parsers import *
+from html_extractors import extract_all_problem_categories, extract_all_problem_previews, extract_csrf_token, extract_problem_detail, extract_submit_lists
 from string import Template
 
 VERSION = "0.3.0"
@@ -36,14 +37,14 @@ class JudgeResult(IntEnum):
     PREPARING_JUDGE = 2
     JUDGING = 3
     ACCEPTED = 4
-    PRESENTATION_ERROR = 5,
-    WRONG_ANSWER = 6,
-    TIME_EXCEEDED = 7,
-    MEMORY_EXCEEDED = 8,
-    OUTPUT_EXCEEDED = 9,
-    RUNTIME_ERROR = 10,
-    COMPILE_ERROR = 11,
-    UNAVAILABLE = 12,
+    PRESENTATION_ERROR = 5
+    WRONG_ANSWER = 6
+    TIME_EXCEEDED = 7
+    MEMORY_EXCEEDED = 8
+    OUTPUT_EXCEEDED = 9
+    RUNTIME_ERROR = 10
+    COMPILE_ERROR = 11
+    UNAVAILABLE = 12
     PARTIALLY_ACCEPTED = 15
 
     def __str__(self) -> str:
@@ -109,6 +110,27 @@ class JudgeResult(IntEnum):
             return 93
         else:
             raise Exception(f"color code not implemented for {self.value}")
+    
+    def is_judge_finished(self) -> bool:
+        return self.value > JudgeResult.JUDGING.value
+
+class Language(IntEnum):
+    C99 = 0
+    CLANG_C99 = 59
+    C11 = 75
+    CLANG_C11 = 77
+    CSharp = 86
+    CPP11 = 49
+    CLANG_CPP11 = 66
+    CPP17 = 85
+    Python2 = 6
+    Python3 = 28
+    PyPy2 = 32
+    PyPy3 = 73
+    Java8 = 3
+    Java11 = 93
+    Java15 = 107
+    Kotlin = 69
 
 def query_request(qtype: QueryType, id: int = -1) -> Response:
     boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
@@ -122,158 +144,135 @@ def query_request(qtype: QueryType, id: int = -1) -> Response:
     elif qtype == QueryType.SUBMIT:
         req = requests.get(f"https://acmicpc.net/submit/{id}", cookies=boj_cookie)
     
+    if req.status_code == 404:
+        raise Exception('no such content with given id')
     return req
 
 def print_usage():
-    print("Usage: zipline (-c (id) | -l (id) | -p <id>) (-s <id> <file path>)")
+    print("Usage: zipline (-c (id) | -l (id) | -p <id>) (-s <id> <file path>) -i")
 
 def print_problem_lists(id: int):
-    req = query_request(QueryType.PROBLEM_LIST, id)
-    if req.status_code == 404:
-        print("no such problem list with given id")
-        return
-    
-    parser = ProblemListParser()
-    parser.feed(req.text)
-    previews = parser.get_all_problem_previews()
+    try:
+        req = query_request(QueryType.PROBLEM_LIST, id)
+        previews = extract_all_problem_previews(req.text)
 
-    for i in range(0, len(previews)):
-        print(f"{i+1} {previews[i].title}({previews[i].id}) - {previews[i].accepted_submits}/{previews[i].submits}")
+        for i in range(0, len(previews)):
+            print(f"{i+1} {previews[i].title}({previews[i].id}) - {previews[i].accepted_submits}/{previews[i].submits}")
+    except:
+        print("no such problem list with given id")
 
 def print_problem_categories(id: int):
-    req = query_request(QueryType.PROBLEM_CATEGORY, id)
-    if req.status_code == 404:
-        print("no such problem category with given id")
-        return
-    
-    parser = ProblemCategoryParser()
-    parser.feed(req.text)
-    categories = parser.get_all_problem_category()
+    try:
+        req = query_request(QueryType.PROBLEM_CATEGORY, id)
+        categories = extract_all_problem_categories(req.text)
 
-    for category in categories:
-        color = "\033[32m" if category.solved_count == category.total_count else "\033[0m"
-        print(f"{color}{category.id} {category.title} - ({category.solved_count}/{category.total_count}) \033[0m")
+        for category in categories:
+            color = "\033[32m" if category.solved_count == category.total_count else "\033[0m"
+            print(f"{color}{category.id} {category.title} - ({category.solved_count}/{category.total_count}) \033[0m")
+    except:
+        print("no such problem category with given id")
 
 def print_problem_details(id: int):
-    req = query_request(QueryType.PROBLEM, id)
-    if req.status_code == 404:
-        print("no such problem with given id")
-        return
-    
-    parser = ProblemParser()
-    parser.feed(req.text)
-    detail = parser.get_problem_details()
+    try:
+        req = query_request(QueryType.PROBLEM, id)
+        detail = extract_problem_detail(req.text)
 
-    template = Template("""
-        $color $id ($title) $reset_color
-        - $tlimit, $mem_limit 내로 해결해야 함
-        - 현재 $submits 번 제출되었고, 그 중 $accepted_submits 개가 정답 처리됨
-        
-        문제:
-         $desc
+        template = Template("""
+            $color $id ($title) $reset_color
+            - $tlimit, $mem_limit 내로 해결해야 함
+            - 현재 $submits 번 제출되었고, 그 중 $accepted_submits 개가 정답 처리됨
+            
+            문제:
+            $desc
 
-        입력:
-         $input_desc
+            입력:
+            $input_desc
 
-        출력:
-         $output_desc
-    """).substitute(
-        color="\033[32m" if detail.preview.is_accepted else "\033[0m",
-        reset_color="\033[0m",
-        id=detail.preview.id,
-        title=detail.preview.title,
-        desc=detail.description,
-        input_desc=detail.input_desc,
-        output_desc=detail.output_desc,
-        tlimit=detail.time_limit,
-        mem_limit=detail.memory_limit,
-        submits=detail.preview.submits,
-        accepted_submits=detail.preview.accepted_submits
-    )
+            출력:
+            $output_desc
+        """).substitute(
+            color="\033[32m" if detail.preview.is_accepted else "\033[0m",
+            reset_color="\033[0m",
+            id=detail.preview.id,
+            title=detail.preview.title,
+            desc=detail.description,
+            input_desc=detail.input_desc,
+            output_desc=detail.output_desc,
+            tlimit=detail.time_limit,
+            mem_limit=detail.memory_limit,
+            submits=detail.preview.submits,
+            accepted_submits=detail.preview.accepted_submits
+        )
 
-    print(template)
+        print(template)
+    except:
+        print('no such problem with given id')
 
-def submit_solution(id: int, filename: str):
-    req = query_request(QueryType.SUBMIT, id)
-    if req.status_code == 404:
+def submit_solution(id: int, filename: str) -> int:
+    try:
+        req = query_request(QueryType.SUBMIT, id)
+        csrf_token = extract_csrf_token(req.text)
+        form = craft_submit_form(id, filename, csrf_token)
+
+        boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
+        res = requests.post(url=f"https://www.acmicpc.net/submit/{id}", cookies=boj_cookie, data=form)
+
+        submit_list = extract_submit_lists(res.text)
+        return submit_list[0].solution_id
+    except:
         print("no such problem with given id.")
-        return
+
+def show_judge_progress(submit_id: int):
+    # Assuming judging servers have enough delay(> 500ms) to let our websocket client get entire content from beginning
+    ws = websocket.WebSocket()
+    ws.connect(f"wss://ws-ap1.pusher.com/app/{PUSHER_TOKEN}?protocol=7&client=js&version=4.2.2&flash=false")
+    ws.send('{"event":"pusher:subscribe", "data":{"channel":"solution-%i"}}' % submit_id)
+
+    current_result = JudgeResult.PENDING_JUDGE
+
+    print(f"{submit_id}번 제출 - 채점 준비중..")
+    while not current_result.is_judge_finished():
+        progress_json = receive_progress_from(socket=ws)
+        if progress_json['event'] == 'update':
+            current_result = JudgeResult(int(progress_json['data']['result']))
+
+        if 'progress' in progress_json['data']:
+            # FIXME: After refactoring, the color is not visible again. Order matters.
+            progress = int(progress_json['data']['progress'])
+            color = current_result.get_color_code()
+            show_progress_bar(progress, color)
     
-    csrf_parser = CSRFTokenParser()
-    csrf_parser.feed(req.text)
-    csrf_token = csrf_parser.get_csrf_token()
+    # Judge finished, show final result here. also add a new line for prettier print
+    print()
+    print(current_result)
 
-    boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
+def receive_progress_from(socket: websocket.WebSocket) -> any:
+    received = socket.recv()
+    # Because received json contains json object 'literal', we need to make it as an actual object
+    replaced = received.replace('\\', '').replace("\"{", "{").replace("}\"", "}")
+    return json.loads(replaced)
 
+def show_progress_bar(progress: int, color: int):
+    term_size = os.get_terminal_size()
+    prepared_text = ''
+    print(f'\033[{color}m', end='')
+
+    prog_bar_width = math.floor((term_size.columns - PADDING) * progress / 100)
+    prepared_text = '\r{0:<{pad}}{1}'.format(f"{progress}%", '▓' * prog_bar_width, pad=PADDING)
+    print(prepared_text, end='')
+
+def craft_submit_form(id: int, filename: str, csrf_token: str) -> dict:
     with open(filename) as source_file:
         src = source_file.read()
         form = {
             'problem_id': id,
-            'language': 0, # See https://help.acmicpc.net/language/info for details.
+            'language': 0,
             'code_open': 'close',
             'source': src,
             'csrf_key': csrf_token
         }
 
-        # Connect to websocket first
-        ws = websocket.WebSocket()
-        ws.connect(f"wss://ws-ap1.pusher.com/app/{PUSHER_TOKEN}?protocol=7&client=js&version=4.2.2&flash=false")
-        
-        res = requests.post(url=f"https://www.acmicpc.net/submit/{id}", cookies=boj_cookie, data=form)
-
-        # Extract submit list(represented in js array) from response body
-        start_index = res.text.find("solution_ids") + len("solution_ids = ")
-        end_index = res.text.find(";", start_index)
-        list_literal = res.text[start_index:end_index]
-
-        submit_list = parse_submit_list_literal(list_literal)
-        # To get a real-time progress, we need to subscribe channel first
-        ws.send('{"event":"pusher:subscribe", "data":{"channel":"solution-%i"}}' % submit_list[0].solution_id)
-
-        end_of_judge_range = range(4, 13)
-        current_result = JudgeResult.PENDING_JUDGE
-        prepared_text = ''
-
-        print(f"{id}번 문제 - 채점 준비중..")
-        while True:
-            received = ws.recv()
-            # Because received json contains json object 'literal', we need to make it as an actual object
-            replaced = received.replace('\\', '').replace("\"{", "{").replace("}\"", "}")
-            parsed = json.loads(replaced)
-
-            if parsed['event'] == 'update':
-                current_result = JudgeResult(int(parsed['data']['result']))
-
-            # Prepare text color first
-            term_size = os.get_terminal_size()
-            color_code = current_result.get_color_code()
-            print(f'\033[{color_code}m', end='')
-
-            if 'progress' in parsed['data']:
-                progress = int(parsed['data']['progress'])
-                prog_bar_width = math.floor((term_size.columns - PADDING) * progress / 100)
-                prepared_text = '\r{0:<{pad}}{1}'.format(f"{progress}%", '▓' * prog_bar_width, pad=PADDING)
-
-            print(prepared_text, end='')
-            if current_result in end_of_judge_range:
-                break
-        
-        # Add a newline for prettier print
-        print()
-        print(current_result)
-
-def parse_submit_list_literal(literal: str) -> list[namedtuple]:
-    # From newest to oldest order
-    parsed = []
-    submit_list = literal.replace('[', '').replace(']', '').split(',')
-
-    # Store everything into tuple except last element, as it's empty
-    for i in range(0, len(submit_list) - 1, 2):
-        submit_info = namedtuple('SubmitInfo', ['solution_id', 'status_code'])
-        t = submit_info(int(submit_list[i]), int(submit_list[i+1]))
-        parsed.append(t)
-    
-    return parsed
+        return form
 
 def parse_commands(argv: list[str]):
     for i in range(0, len(argv)):
@@ -296,7 +295,8 @@ def parse_commands(argv: list[str]):
                 print_usage()
         elif argv[i] == "-s":
             if i < len(argv) - 2 and argv[i+1].isnumeric():
-                submit_solution(int(argv[i+1]), argv[i+2])
+                submit_id = submit_solution(int(argv[i+1]), argv[i+2])
+                show_judge_progress(submit_id)
             else:
                 print("id and filename must be specified")
                 print_usage()
