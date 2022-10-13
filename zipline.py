@@ -79,41 +79,57 @@ class JudgeResult(IntEnum):
         else:
             raise Exception(f"not implemented for given value: {self.value}")
 
-    def get_color_code(self) -> int:
-        if self.value == 0:
-            return 90
-        elif self.value == 1:
-            return 90
-        elif self.value == 2:
-            return 37
-        elif self.value == 3:
-            return 37
-        elif self.value == 4:
-            return 32
-        elif self.value == 5:
-            return 91
-        elif self.value == 6:
-            return 31
-        elif self.value == 7:
-            return 91
-        elif self.value == 8:
-            return 91
-        elif self.value == 9:
-            return 91
-        elif self.value == 10:
-            return 95
-        elif self.value == 11:
-            return 95
-        elif self.value == 12:
-            return 90
-        elif self.value == 15:
-            return 93
-        else:
-            raise Exception(f"color code not implemented for {self.value}")
-    
-    def is_judge_finished(self) -> bool:
-        return self.value > JudgeResult.JUDGING.value
+class JudgeProgress:
+    consumed_memory_in_kb: int = 0
+    consumed_time_in_ms: int = 0
+    percentage: int = 0
+    result: JudgeResult = JudgeResult.PENDING_JUDGE
 
+    def renew_progress_from(self, json: dict):
+        if json['event'] != 'update':
+            return
+        
+        if 'result' in json['data']:
+            self.result = JudgeResult(int(json['data']['result']))
+        if 'progress' in json['data']:
+            self.percentage = int(json['data']['progress'])
+        if 'memory' in json['data']:
+            self.consumed_memory_in_kb = int(json['data']['memory'])
+        if 'time' in json['data']:
+            self.consumed_time_in_ms = int(json['data']['time'])
+
+    def is_judge_ended(self) -> bool:
+        return self.result > JudgeResult.JUDGING.value
+
+    def get_text_color(self) -> int:
+        if self.result.value == 0:
+            return 90
+        elif self.result.value == 1:
+            return 90
+        elif self.result.value == 2:
+            return 37
+        elif self.result.value == 3:
+            return 37
+        elif self.result.value == 4:
+            return 32
+        elif self.result.value == 5:
+            return 91
+        elif self.result.value == 6:
+            return 31
+        elif self.result.value == 7:
+            return 91
+        elif self.result.value == 8:
+            return 91
+        elif self.result.value == 9:
+            return 91
+        elif self.result.value == 10:
+            return 95
+        elif self.result.value == 11:
+            return 95
+        elif self.result.value == 12:
+            return 90
+        elif self.result.value == 15:
+            return 93
 class Language(IntEnum):
     C99 = 0
     CLANG_C99 = 59
@@ -223,28 +239,25 @@ def submit_solution(id: int, filename: str) -> int:
         print("no such problem with given id.")
 
 def show_judge_progress(submit_id: int):
+    subscriber = create_judge_result_subscriber(submit_id)
+    judge_progress = JudgeProgress()
+    print(f"{submit_id}번 제출 - 채점 준비중..")
+    
+    while not judge_progress.is_judge_ended():
+        progress_json = receive_progress_from(socket=subscriber)
+        judge_progress.renew_progress_from(progress_json)
+
+        color = judge_progress.get_text_color()
+        show_progress_bar(judge_progress.percentage, color)
+
+    show_final_judge_result(judge_progress)
+
+def create_judge_result_subscriber(submit_id: int) -> websocket.WebSocket:
     # Assuming judging servers have enough delay(> 500ms) to let our websocket client get entire content from beginning
     ws = websocket.WebSocket()
     ws.connect(f"wss://ws-ap1.pusher.com/app/{PUSHER_TOKEN}?protocol=7&client=js&version=4.2.2&flash=false")
     ws.send('{"event":"pusher:subscribe", "data":{"channel":"solution-%i"}}' % submit_id)
-
-    current_result = JudgeResult.PENDING_JUDGE
-
-    print(f"{submit_id}번 제출 - 채점 준비중..")
-    while not current_result.is_judge_finished():
-        progress_json = receive_progress_from(socket=ws)
-        if progress_json['event'] == 'update':
-            current_result = JudgeResult(int(progress_json['data']['result']))
-
-        if 'progress' in progress_json['data']:
-            # FIXME: After refactoring, the color is not visible again. Order matters.
-            progress = int(progress_json['data']['progress'])
-            color = current_result.get_color_code()
-            show_progress_bar(progress, color)
-    
-    # Judge finished, show final result here. also add a new line for prettier print
-    print()
-    print(current_result)
+    return ws
 
 def receive_progress_from(socket: websocket.WebSocket) -> any:
     received = socket.recv()
@@ -254,14 +267,23 @@ def receive_progress_from(socket: websocket.WebSocket) -> any:
 
 def show_progress_bar(progress: int, color: int):
     term_size = os.get_terminal_size()
-    prepared_text = ''
     print(f'\033[{color}m', end='')
 
     prog_bar_width = math.floor((term_size.columns - PADDING) * progress / 100)
-    prepared_text = '\r{0:<{pad}}{1}'.format(f"{progress}%", '▓' * prog_bar_width, pad=PADDING)
-    print(prepared_text, end='')
+    progress_bar = '\r{0:<{pad}}{1}'.format(f"{progress}%", '▓' * prog_bar_width, pad=PADDING)
+    print(progress_bar, end='')
+
+def show_final_judge_result(progress: JudgeProgress):
+    # Adding a newline for prettier print
+    print()
+
+    if progress.result == JudgeResult.ACCEPTED:
+        print(f"{progress.result} - {progress.consumed_memory_in_kb}KB 사용, {progress.consumed_time_in_ms}ms 경과함")
+    else:
+        print(progress.result)
 
 def craft_submit_form(id: int, filename: str, csrf_token: str) -> dict:
+    # TODO: Load preference from somewhere and craft with everything.
     with open(filename) as source_file:
         src = source_file.read()
         form = {
