@@ -3,17 +3,19 @@
     For who even don't want to open gui browsers just to do tedious works
 """
 
-import sys
-import os
-import requests
-import browser_cookie3
-import websocket
 import json
 import math
+import os
+import sys
 
-from collections import namedtuple
 from enum import IntEnum, unique
-from requests import get, Response, Request, Session
+from string import Template
+
+import browser_cookie3
+import requests
+import websocket
+from requests import Response
+
 from html_extractors import (
     extract_all_problem_categories,
     extract_all_problem_previews,
@@ -21,12 +23,34 @@ from html_extractors import (
     extract_problem_detail,
     extract_submit_lists,
 )
-from string import Template
 
 VERSION = "0.3.0"
 STEP = -1
 PUSHER_TOKEN = "a2cb611847131e062b32"
 PADDING = 8
+
+
+@unique
+class TextColor(IntEnum):
+    BLACK = 30
+    RED = 31
+    GREEN = 32
+    YELLOW = 33
+    BLUE = 34
+    MAGENTA = 35
+    CYAN = 36
+    WHITE = 37
+    BRIGHT_BLACK = 90
+    BRIGHT_RED = 91
+    BRIGHT_GREEN = 92
+    BRIGHT_YELLOW = 93
+    BRIGHT_BLUE = 94
+    BRIGHT_MAGENTA = 95
+    BRIGHT_CYAN = 96
+    BRIGHT_WHITE = 97
+
+    def get_foreground_color(self) -> int:
+        return self.value
 
 
 @unique
@@ -55,33 +79,33 @@ class JudgeResult(IntEnum):
     PARTIALLY_ACCEPTED = 15
 
     def __str__(self) -> str:
-        if self.value == 0:
+        if self == JudgeResult.PENDING_JUDGE:
             return "기다리는 중"
-        elif self.value == 1:
+        elif self == JudgeResult.PENDING_REJUDGE:
             return "재채점을 기다리는 중"
-        elif self.value == 2:
+        elif self == JudgeResult.PREPARING_JUDGE:
             return "채점 준비 중"
-        elif self.value == 3:
+        elif self == JudgeResult.JUDGING:
             return "채점 중"
-        elif self.value == 4:
+        elif self == JudgeResult.ACCEPTED:
             return "맞았습니다!"
-        elif self.value == 5:
+        elif self == JudgeResult.PRESENTATION_ERROR:
             return "출력 형식이 잘못되었습니다"
-        elif self.value == 6:
+        elif self == JudgeResult.WRONG_ANSWER:
             return "틀렸습니다"
-        elif self.value == 7:
+        elif self == JudgeResult.TIME_EXCEEDED:
             return "시간 초과"
-        elif self.value == 8:
+        elif self == JudgeResult.MEMORY_EXCEEDED:
             return "메모리 초과"
-        elif self.value == 9:
+        elif self == JudgeResult.OUTPUT_EXCEEDED:
             return "출력 초과"
-        elif self.value == 10:
+        elif self == JudgeResult.RUNTIME_ERROR:
             return "런타임 오류"
-        elif self.value == 11:
+        elif self == JudgeResult.COMPILE_ERROR:
             return "컴파일 오류"
-        elif self.value == 12:
+        elif self == JudgeResult.UNAVAILABLE:
             return "채점 불가능"
-        elif self.value == 15:
+        elif self == JudgeResult.PARTIALLY_ACCEPTED:
             return "일부만 맞았습니다!"
         else:
             raise Exception(f"not implemented for given value: {self.value}")
@@ -109,35 +133,35 @@ class JudgeProgress:
     def is_judge_ended(self) -> bool:
         return self.result > JudgeResult.JUDGING.value
 
-    def get_text_color(self) -> int:
-        if self.result.value == 0:
-            return 90
-        elif self.result.value == 1:
-            return 90
-        elif self.result.value == 2:
-            return 37
-        elif self.result.value == 3:
-            return 37
-        elif self.result.value == 4:
-            return 32
-        elif self.result.value == 5:
-            return 91
-        elif self.result.value == 6:
-            return 31
-        elif self.result.value == 7:
-            return 91
-        elif self.result.value == 8:
-            return 91
-        elif self.result.value == 9:
-            return 91
-        elif self.result.value == 10:
-            return 95
-        elif self.result.value == 11:
-            return 95
-        elif self.result.value == 12:
-            return 90
-        elif self.result.value == 15:
-            return 93
+    def get_text_color(self) -> TextColor:
+        if self.result == JudgeResult.PENDING_JUDGE:
+            return TextColor.BRIGHT_BLACK
+        elif self.result == JudgeResult.PENDING_REJUDGE:
+            return TextColor.BRIGHT_BLACK
+        elif self.result == JudgeResult.PREPARING_JUDGE:
+            return TextColor.WHITE
+        elif self.result == JudgeResult.JUDGING:
+            return TextColor.WHITE
+        elif self.result == JudgeResult.ACCEPTED:
+            return TextColor.GREEN
+        elif self.result == JudgeResult.PRESENTATION_ERROR:
+            return TextColor.BRIGHT_RED
+        elif self.result == JudgeResult.WRONG_ANSWER:
+            return TextColor.RED
+        elif self.result == JudgeResult.TIME_EXCEEDED:
+            return TextColor.BRIGHT_RED
+        elif self.result == JudgeResult.MEMORY_EXCEEDED:
+            return TextColor.BRIGHT_RED
+        elif self.result == JudgeResult.OUTPUT_EXCEEDED:
+            return TextColor.BRIGHT_RED
+        elif self.result == JudgeResult.RUNTIME_ERROR:
+            return TextColor.BRIGHT_MAGENTA
+        elif self.result == JudgeResult.COMPILE_ERROR:
+            return TextColor.BRIGHT_MAGENTA
+        elif self.result == JudgeResult.UNAVAILABLE:
+            return TextColor.BRIGHT_BLACK
+        elif self.result == JudgeResult.PARTIALLY_ACCEPTED:
+            return TextColor.BRIGHT_YELLOW
 
 
 class Language(IntEnum):
