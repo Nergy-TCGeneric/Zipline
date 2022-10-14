@@ -1,7 +1,8 @@
 import unittest
 import requests
 import browser_cookie3
-from boj_parsers import *
+from html_extractors import *
+
 
 class ParserTestCase(unittest.TestCase):
     category_parser: ProblemCategoryParser
@@ -25,7 +26,9 @@ class ParserTestCase(unittest.TestCase):
         self.problem_parser = ProblemParser()
         self.problem_parser.feed(problem_req.text)
 
-        submit_req = requests.get("https://acmicpc.net/submit/2557", cookies=boj_cookies)
+        submit_req = requests.get(
+            "https://acmicpc.net/submit/2557", cookies=boj_cookies
+        )
         self.csrf_parser = CSRFTokenParser()
         self.csrf_parser.feed(submit_req.text)
 
@@ -42,8 +45,8 @@ class ParserTestCase(unittest.TestCase):
         all_category = self.category_parser.get_all_problem_category()
         for category in all_category:
             self.assertGreater(category.id, -1)
-            self.assertNotEqual(category.title, '')
-            self.assertNotEqual(category.description, '')
+            self.assertNotEqual(category.title, "")
+            self.assertNotEqual(category.description, "")
             self.assertGreaterEqual(category.total_count, -1)
 
     def test_should_get_one_problem_list(self):
@@ -59,7 +62,7 @@ class ParserTestCase(unittest.TestCase):
         all_problems = self.plist_parser.get_all_problem_previews()
         for preview in all_problems:
             self.assertGreater(preview.id, 999)
-            self.assertNotEqual(preview.title, '')
+            self.assertNotEqual(preview.title, "")
             self.assertGreater(preview.accepted_submits, -1)
             self.assertGreater(preview.submits, -1)
 
@@ -81,7 +84,8 @@ class ParserTestCase(unittest.TestCase):
     def test_should_fetch_every_data_to_prepare_solution_submit(self):
         csrf = self.csrf_parser.get_csrf_token()
 
-        self.assertNotEqual(csrf, '')
+        self.assertNotEqual(csrf, "")
+
 
 if __name__ == "__main__":
     unittest.main()
