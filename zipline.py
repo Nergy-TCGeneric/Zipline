@@ -8,6 +8,7 @@ import math
 import os
 import sys
 
+from pathlib import Path
 from enum import IntEnum, unique
 from string import Template
 
@@ -111,6 +112,42 @@ class JudgeResult(IntEnum):
             raise Exception(f"not implemented for given value: {self.value}")
 
 
+@unique
+class Language(IntEnum):
+    C99 = 0
+    CLANG_C99 = 59
+    C11 = 75
+    CLANG_C11 = 77
+    CSharp = 86
+    CPP11 = 49
+    CLANG_CPP11 = 66
+    CPP17 = 85
+    Python2 = 6
+    Python3 = 28
+    PyPy2 = 32
+    PyPy3 = 73
+    Java8 = 3
+    Java11 = 93
+    Java15 = 107
+    Kotlin = 69
+    GolfScript = 79
+
+
+@unique
+class CodeOpenSelection(IntEnum):
+    OPEN = 0
+    CLOSE = 1
+    ONLYACCEPTED = 2
+
+    def __str__(self) -> str:
+        if self == CodeOpenSelection.OPEN:
+            return "open"
+        elif self == CodeOpenSelection.CLOSE:
+            return "close"
+        elif self == CodeOpenSelection.ONLYACCEPTED:
+            return "onlyaccepted"
+
+
 class JudgeProgress:
     consumed_memory_in_kb: int = 0
     consumed_time_in_ms: int = 0
@@ -164,23 +201,37 @@ class JudgeProgress:
             return TextColor.BRIGHT_YELLOW
 
 
-class Language(IntEnum):
-    C99 = 0
-    CLANG_C99 = 59
-    C11 = 75
-    CLANG_C11 = 77
-    CSharp = 86
-    CPP11 = 49
-    CLANG_CPP11 = 66
-    CPP17 = 85
-    Python2 = 6
-    Python3 = 28
-    PyPy2 = 32
-    PyPy3 = 73
-    Java8 = 3
-    Java11 = 93
-    Java15 = 107
-    Kotlin = 69
+class SubmitForm:
+    problem_id: int
+    language: Language
+    code_open: CodeOpenSelection
+    source: str
+    csrf_key: str
+
+    def __init__(self) -> None:
+        self.problem_id = 0
+        self.language = Language.C99
+        self.code_open = CodeOpenSelection.OPEN
+        self.source = ""
+        self.csrf_key = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "problem_id": self.problem_id,
+            "language": self.language.value,
+            "code_open": str(self.code_open),
+            "source": self.source,
+            "csrf_key": self.csrf_key,
+        }
+
+
+class SourceFileInfo:
+    language: Language
+    content: str
+
+    def __init__(self, lang: Language, content: str) -> None:
+        self.language = lang
+        self.content = content
 
 
 def query_request(qtype: QueryType, id: int = -1) -> Response:
@@ -274,21 +325,34 @@ def print_problem_details(id: int):
         print("no such problem with given id")
 
 
-def submit_solution(id: int, filename: str) -> int:
+def prepare_post_form(id: int, filename: str) -> SubmitForm:
     try:
+        form = SubmitForm()
+        form.problem_id = id
+
         req = query_request(QueryType.SUBMIT, id)
-        csrf_token = extract_csrf_token(req.text)
-        form = craft_submit_form(id, filename, csrf_token)
+        form.csrf_key = extract_csrf_token(req.text)
 
-        boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
-        res = requests.post(
-            url=f"https://www.acmicpc.net/submit/{id}", cookies=boj_cookie, data=form
-        )
+        source_info = get_source_and_language(filename)
+        form.language = source_info.language
+        form.source = source_info.content
 
-        submit_list = extract_submit_lists(res.text)
-        return submit_list[0].solution_id
+        form.code_open = get_code_open_selection_from_user()
+        return form
     except:
         print("no such problem with given id.")
+
+
+def submit_solution(form: SubmitForm) -> int:
+    boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
+    res = requests.post(
+        url=f"https://www.acmicpc.net/submit/{form.problem_id}",
+        cookies=boj_cookie,
+        data=form.to_dict(),
+    )
+
+    submit_list = extract_submit_lists(res.text)
+    return submit_list[0].solution_id
 
 
 def show_judge_progress(submit_id: int):
@@ -336,6 +400,50 @@ def show_progress_bar(progress: int, color: int):
     print(progress_bar, end="")
 
 
+def get_source_and_language(file_path: str) -> SourceFileInfo:
+    path = Path(file_path)
+    inferred_lang = infer_language_from_extension(path.suffix)
+
+    with path.open() as f:
+        content = f.read()
+        return SourceFileInfo(inferred_lang, content)
+
+
+def get_code_open_selection_from_user() -> CodeOpenSelection:
+    while True:
+        print("코드를 공개할까요?")
+        selection = input("공개 (0), 비공개 (1), 맞았을 때만 공개 (2): ")
+
+        if not selection.isdigit():
+            continue
+
+        int_selection = int(selection)
+        if int_selection < 0 or int_selection > 2:
+            continue
+
+        return CodeOpenSelection(int_selection)
+
+
+def infer_language_from_extension(ext: str) -> Language:
+    # TODO: By using file extension, if multiple choices are available then prompt user input to select one of them.
+    # By now, this returns stub value instead.
+
+    if ext == ".c":
+        return Language.C99
+    elif ext == ".gs":
+        return Language.GolfScript
+    elif ext == ".cc":
+        return Language.CPP11
+    elif ext == ".py":
+        return Language.Python3
+    elif ext == ".java":
+        return Language.Java11
+    elif ext == ".kt":
+        return Language.Kotlin
+
+    raise Exception(f"failed to infer language from given extension: {ext}")
+
+
 def show_final_judge_result(progress: JudgeProgress):
     # Adding a newline for prettier print
     print()
@@ -346,21 +454,6 @@ def show_final_judge_result(progress: JudgeProgress):
         )
     else:
         print(progress.result)
-
-
-def craft_submit_form(id: int, filename: str, csrf_token: str) -> dict:
-    # TODO: Load preference from somewhere and craft with everything.
-    with open(filename) as source_file:
-        src = source_file.read()
-        form = {
-            "problem_id": id,
-            "language": 0,
-            "code_open": "close",
-            "source": src,
-            "csrf_key": csrf_token,
-        }
-
-        return form
 
 
 def parse_commands(argv: list[str]):
@@ -384,7 +477,8 @@ def parse_commands(argv: list[str]):
                 print_usage()
         elif argv[i] == "-s":
             if i < len(argv) - 2 and argv[i + 1].isnumeric():
-                submit_id = submit_solution(int(argv[i + 1]), argv[i + 2])
+                postform = prepare_post_form(int(argv[i + 1]), argv[i + 2])
+                submit_id = submit_solution(postform)
                 show_judge_progress(submit_id)
             else:
                 print("id and filename must be specified")
