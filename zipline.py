@@ -7,6 +7,7 @@ import json
 import math
 import os
 import sys
+import argparse
 
 from pathlib import Path
 from string import Template
@@ -270,39 +271,37 @@ def show_final_judge_result(progress: JudgeProgress):
         print(progress.result)
 
 
-def parse_commands(argv: list[str]):
-    for i in range(0, len(argv)):
-        if argv[i] == "-c":
-            if i < len(argv) - 1 and argv[i + 1].isnumeric():
-                print_problem_categories(int(argv[i + 1]))
-            else:
-                print_problem_categories(STEP)
-        elif argv[i] == "-l":
-            if i < len(argv) - 1 and argv[i + 1].isnumeric():
-                print_problem_lists(int(argv[i + 1]))
-            else:
-                print("id must be specified")
-                print_usage()
-        elif argv[i] == "-p":
-            if i < len(argv) - 1 and argv[i + 1].isnumeric():
-                print_problem_details(int(argv[i + 1]))
-            else:
-                print("id must be specified")
-                print_usage()
-        elif argv[i] == "-s":
-            if i < len(argv) - 2 and argv[i + 1].isnumeric():
-                postform = prepare_post_form(int(argv[i + 1]), argv[i + 2])
-                submit_id = submit_solution(postform)
-                show_judge_progress(submit_id)
-            else:
-                print("id and filename must be specified")
-                print_usage()
+def create_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--category", type=int, metavar="<CATEGORY ID>")
+    parser.add_argument("-l", "--list", type=int, metavar="<LIST ID>")
+    parser.add_argument("-p", "--problem", type=int, metavar="<PROBLEM ID>")
+    parser.add_argument(
+        "-s", "--submit", nargs=2, metavar=("<PROBLEM ID>", "<FILE PATH>")
+    )
+
+    return parser
+
+
+def execute_command(args: argparse.Namespace):
+    if args.category != None:
+        print_problem_categories(args.category)
+    elif args.list != None:
+        print_problem_lists(args.list)
+    elif args.problem != None:
+        print_problem_details(args.problem)
+    elif args.submit != None:
+        postform = prepare_post_form(id=int(args.submit[0]), filename=args.submit[1])
+        submit_id = submit_solution(postform)
+        show_judge_progress(submit_id)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) - 1 == 0:
-        print(f"Zipline {VERSION} - A TUI for BOJ")
-        print_usage()
+    parser = create_parser()
+
+    if len(sys.argv) == 1:
+        parser.print_help()
         sys.exit()
 
-    parse_commands(sys.argv)
+    parsed = parser.parse_args(sys.argv[1:])
+    execute_command(parsed)
