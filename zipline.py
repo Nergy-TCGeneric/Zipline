@@ -61,7 +61,7 @@ def print_problem_lists(id: int):
                 f"{i+1} {previews[i].title}({previews[i].id}) - {previews[i].accepted_submits}/{previews[i].submits}"
             )
     except:
-        print("no such problem list with given id")
+        print("해당 번호와 일치하는 문제 목록을 찾을 수 없습니다.")
 
 
 def print_problem_categories(id: int):
@@ -79,7 +79,7 @@ def print_problem_categories(id: int):
                 f"{color}{category.id} {category.title} - ({category.solved_count}/{category.total_count}) \033[0m"
             )
     except:
-        print("no such problem category with given id")
+        print("해당 번호와 일치하는 단계별 문제 목록을 찾을 수 없습니다.")
 
 
 def print_problem_details(id: int):
@@ -118,7 +118,7 @@ def print_problem_details(id: int):
 
         print(template)
     except:
-        print("no such problem with given id")
+        print("해당 번호와 일치하는 문제를 찾을 수 없습니다.")
 
 
 def prepare_post_form(id: int, filename: str) -> SubmitForm:
@@ -136,7 +136,7 @@ def prepare_post_form(id: int, filename: str) -> SubmitForm:
         form.code_open = get_code_open_selection_from_user()
         return form
     except:
-        print("no such problem with given id.")
+        print("해당 번호와 일치하는 문제를 찾을 수 없습니다.")
 
 
 def submit_solution(form: SubmitForm) -> int:
