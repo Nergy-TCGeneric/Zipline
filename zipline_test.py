@@ -4,13 +4,12 @@ import zipline
 from pathlib import Path
 from unittest.mock import patch
 from zipline import (
-    CodeOpenSelection,
     get_code_open_selection_from_user,
     infer_language_from_file,
-    Language,
     prepare_post_form,
     get_candidates_from_extension,
 )
+from zipline_component import CodeOpenSelection, Language
 
 
 class PostRequestPreparationTestcase(unittest.TestCase):
