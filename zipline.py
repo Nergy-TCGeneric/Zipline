@@ -670,7 +670,20 @@ def infer_language_from_file(file_path: Path) -> Language:
 
 
 def prompt_user_select_languages(candidates: list[Language]) -> Language:
-    pass
+    while True:
+        print("이용 가능한 언어 중 하나를 선택해주세요. 언어를 선택하시려면 괄호 안 숫자를 입력해주세요.")
+        for c in candidates:
+            print(f"{c.name} ({c.value}),", end=" ")
+        print()
+
+        selection = input('> ')
+        if not selection.isdecimal():
+            continue
+
+        i = int(selection)
+        for c in candidates:
+            if c.value == i:
+                return c
 
 
 def get_code_open_selection_from_user() -> CodeOpenSelection:
@@ -689,25 +702,11 @@ def get_code_open_selection_from_user() -> CodeOpenSelection:
 
 
 def get_candidates_from_extension(ext: str) -> list[Language]:
-    # TODO: By using file extension, if multiple choices are available then prompt user input to select one of them.
-    # By now, this returns stub value instead.
-
     candidates = []
 
-    if ext == ".c":
-        candidates.append(Language.C99)
-    elif ext == ".gs":
-        candidates.append(Language.GolfScript)
-    elif ext == ".cc":
-        candidates.append(Language.CPP11)
-    elif ext == ".py":
-        candidates.append(Language.Python2)
-    elif ext == ".java":
-        candidates.append(Language.Java11)
-    elif ext == ".kt":
-        candidates.append(Language.Kotlin)
-    else:
-        raise Exception(f"failed to infer language from given extension: {ext}")
+    for l in Language:
+        if ext == l.get_file_extension():
+            candidates.append(l)
 
     return candidates
 

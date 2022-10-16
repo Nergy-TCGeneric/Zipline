@@ -9,6 +9,7 @@ from zipline import (
     infer_language_from_file,
     Language,
     prepare_post_form,
+    get_candidates_from_extension,
 )
 
 
@@ -212,6 +213,22 @@ class LanguageFileExtensionEquivalenceTestcase(unittest.TestCase):
         # NOTE: They are totally different, but accidentally they have a same extensions.
         self.check_if_language_have_equal_extension(Language.BrainFuck, ".bf")
         self.check_if_language_have_equal_extension(Language.Befunge, ".bf")
+
+    def test_should_return_multiple_languages_that_share_same_file_extensions(self):
+        C_VARIANTS = [
+            Language.C90,
+            Language.CLANG_C90,
+            Language.C99,
+            Language.CLANG_C99,
+            Language.C11,
+            Language.CLANG_C11,
+            Language.C2x,
+            Language.CLANG_C2x,
+        ]
+
+        langs = get_candidates_from_extension(".c")
+        for l in langs:
+            self.assertTrue(l in C_VARIANTS)
 
 
 if __name__ == "__main__":
