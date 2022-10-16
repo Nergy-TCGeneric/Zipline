@@ -26,8 +26,6 @@ from html_extractors import (
     extract_submit_lists,
 )
 
-VERSION = "0.3.0"
-STEP = -1
 PUSHER_TOKEN = "a2cb611847131e062b32"
 PADDING = 8
 
