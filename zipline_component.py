@@ -443,3 +443,8 @@ class SubmitForm:
             "source": self.source,
             "csrf_key": self.csrf_key,
         }
+
+
+class ContentNotFound(Exception):
+    def __init__(self):
+        super()
