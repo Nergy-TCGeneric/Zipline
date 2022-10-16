@@ -114,23 +114,111 @@ class JudgeResult(IntEnum):
 
 @unique
 class Language(IntEnum):
+    C90 = 101
+    CLANG_C90 = 103
     C99 = 0
     CLANG_C99 = 59
     C11 = 75
     CLANG_C11 = 77
-    CSharp = 86
+    C2x = 102
+    CLANG_C2x = 104
+
+    CPP98 = 1
+    CLANG_CPP98 = 60
     CPP11 = 49
     CLANG_CPP11 = 66
-    CPP17 = 85
+    CPP14 = 88
+    CLANG_CPP14 = 67
+    CPP17 = 84
+    CLANG_CPP17 = 85
+    CPP20 = 95
+    CLANG_CPP20 = 96
+
+    CSharp = 86
+    CSharp_3_Mono = 9
+    CSharp_6_Mono = 62
+
     Python2 = 6
     Python3 = 28
     PyPy2 = 32
     PyPy3 = 73
+    Haxe = 81
+
     Java8 = 3
+    Java8_OpenJDK = 91
     Java11 = 93
     Java15 = 107
-    Kotlin = 69
+    Kotlin_JVM = 69
+    Kotlin_Native = 92
+
+    Rust_2015 = 44
+    Rust_2018 = 94
+    Rust_2021 = 113
+
+    D = 29
+    D_LDC = 100
+    FSharp = 108
+    FSharp_Mono = 37
+
+    Ruby = 68
+    Ruby_18 = 4
+    Ruby_19 = 65
+
+    Go = 12
+    Go_GCC = 90
+
+    Swift = 74
+    Objective_C = 10
+    Objective_CPP = 64
+
+    PHP = 7
+    NodeJs = 17
+    TypeScript = 106
+    Rhino = 34
+
+    FreeBASIC = 78
+    VB_NET_2_Mono = 20
+    VB_NET_4_Mono = 63
+    VisualBasic = 109
+
+    Assembly_32bit = 27
+    Assembly_64bit = 87
+
+    Haskell = 11
+    Text = 58
     GolfScript = 79
+    Pascal = 2
+    Scala = 15
+    Lua = 16
+    Perl = 8
+    Bash = 5
+    Fortran = 13
+    Scheme = 14
+    Ada = 19
+    awk = 21
+    OCaml = 22
+    BrainFuck = 23
+    Whitespace = 24
+    Tcl = 26
+    Cobol = 35
+    Pike = 41
+    sed = 43
+    Boo = 46
+    INTERCAL = 47
+    bc = 48
+    Nemerle = 53
+    Cobra = 54
+    Nimrod = 55
+    Algol_68 = 70
+    Befunge = 71
+    LOLCODE = 82
+    Aheui = 83
+    Coq = 98
+    Minecraft = 99
+    SystemVerilog = 105
+    APECODE = 110
+    Crystal = 111
+    Umjunsik = 112
 
 
 @unique
