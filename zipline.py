@@ -333,9 +333,9 @@ def prepare_post_form(id: int, filename: str) -> SubmitForm:
         req = query_request(QueryType.SUBMIT, id)
         form.csrf_key = extract_csrf_token(req.text)
 
-        source_info = get_source_and_language(filename)
-        form.language = source_info.language
-        form.source = source_info.content
+        file_path = Path(filename)
+        form.language = infer_language_from_file(file_path)
+        form.source = get_source_from(file_path)
 
         form.code_open = get_code_open_selection_from_user()
         return form
@@ -400,13 +400,27 @@ def show_progress_bar(progress: int, color: int):
     print(progress_bar, end="")
 
 
-def get_source_and_language(file_path: str) -> SourceFileInfo:
-    path = Path(file_path)
-    inferred_lang = infer_language_from_extension(path.suffix)
-
-    with path.open() as f:
+def get_source_from(file_path: Path) -> str:
+    with file_path.open() as f:
         content = f.read()
-        return SourceFileInfo(inferred_lang, content)
+        return content
+
+
+def infer_language_from_file(file_path: Path) -> Language:
+    candidates = get_candidates_from_extension(file_path.suffix)
+
+    if len(candidates) > 1:
+        selected = prompt_user_select_languages(candidates)
+        return selected
+    elif len(candidates) == 1:
+        return candidates[0]
+    else:
+        # This is unreachable, since `get_candidates_from_extension` raises Exception if it failed to find candidates, making code fail early.
+        pass
+
+
+def prompt_user_select_languages(candidates: list[Language]) -> Language:
+    pass
 
 
 def get_code_open_selection_from_user() -> CodeOpenSelection:
@@ -424,24 +438,28 @@ def get_code_open_selection_from_user() -> CodeOpenSelection:
         return CodeOpenSelection(int_selection)
 
 
-def infer_language_from_extension(ext: str) -> Language:
+def get_candidates_from_extension(ext: str) -> list[Language]:
     # TODO: By using file extension, if multiple choices are available then prompt user input to select one of them.
     # By now, this returns stub value instead.
 
-    if ext == ".c":
-        return Language.C99
-    elif ext == ".gs":
-        return Language.GolfScript
-    elif ext == ".cc":
-        return Language.CPP11
-    elif ext == ".py":
-        return Language.Python3
-    elif ext == ".java":
-        return Language.Java11
-    elif ext == ".kt":
-        return Language.Kotlin
+    candidates = []
 
-    raise Exception(f"failed to infer language from given extension: {ext}")
+    if ext == ".c":
+        candidates.append(Language.C99)
+    elif ext == ".gs":
+        candidates.append(Language.GolfScript)
+    elif ext == ".cc":
+        candidates.append(Language.CPP11)
+    elif ext == ".py":
+        candidates.append(Language.Python2)
+    elif ext == ".java":
+        candidates.append(Language.Java11)
+    elif ext == ".kt":
+        candidates.append(Language.Kotlin)
+    else:
+        raise Exception(f"failed to infer language from given extension: {ext}")
+
+    return candidates
 
 
 def show_final_judge_result(progress: JudgeProgress):

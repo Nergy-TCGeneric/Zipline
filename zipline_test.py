@@ -1,11 +1,12 @@
 import unittest
 import zipline
 
+from pathlib import Path
 from unittest.mock import patch
 from zipline import (
     CodeOpenSelection,
     get_code_open_selection_from_user,
-    get_source_and_language,
+    infer_language_from_file,
     Language,
     prepare_post_form,
 )
@@ -13,18 +14,16 @@ from zipline import (
 
 class PostRequestPreparationTestcase(unittest.TestCase):
     def test_should_determine_golfscript_language_for_golfscript_file(self):
-        source_info = get_source_and_language("./testcase/golfscript.gs")
-        self.assertEqual(source_info.language, Language.GolfScript)
-        self.assertNotEqual(source_info.content, "")
+        lang = infer_language_from_file(Path("./testcase/golfscript.gs"))
+        self.assertEqual(lang, Language.GolfScript)
 
     def test_should_pick_user_preferred_c_language_when_multiple_choices_are_available_in_c_family(
         self,
     ):
         # Selection is sorted in ascending order, so the first selection must be C99.
         with patch.object(zipline, "input", return_value="0"):
-            source_info = get_source_and_language("./testcase/c_file.c")
-            self.assertEqual(source_info.language, Language.C99)
-            self.assertNotEqual(source_info.content, "")
+            lang = infer_language_from_file(Path("./testcase/c_file.c"))
+            self.assertEqual(lang, Language.C99)
 
     def test_should_get_open_code_selection_when_user_says_make_code_open(self):
         with patch.object(zipline, "input", return_value="0"):
