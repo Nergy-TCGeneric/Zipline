@@ -47,10 +47,6 @@ def get_webpage_of(wtype: Webpage, id: int = -1) -> Response:
     return req
 
 
-def print_usage():
-    print("Usage: zipline (-c (id) | -l (id) | -p <id>) (-s <id> <file path>) -i")
-
-
 def print_problem_lists(id: int):
     try:
         req = get_webpage_of(Webpage.PROBLEM_LIST, id)
