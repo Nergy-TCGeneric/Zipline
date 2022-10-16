@@ -55,7 +55,7 @@ class TextColor(IntEnum):
 
 
 @unique
-class QueryType(IntEnum):
+class Webpage(IntEnum):
     PROBLEM = 1
     PROBLEM_LIST = 2
     PROBLEM_CATEGORY = 3
@@ -484,16 +484,16 @@ class SourceFileInfo:
         self.content = content
 
 
-def query_request(qtype: QueryType, id: int = -1) -> Response:
+def get_webpage_of(wtype: Webpage, id: int = -1) -> Response:
     boj_cookie = browser_cookie3.chrome(domain_name="acmicpc.net")
 
-    if qtype == QueryType.PROBLEM:
+    if wtype == Webpage.PROBLEM:
         req = requests.get(f"https://acmicpc.net/problem/{id}", cookies=boj_cookie)
-    elif qtype == QueryType.PROBLEM_LIST:
+    elif wtype == Webpage.PROBLEM_LIST:
         req = requests.get(f"https://acmicpc.net/step/{id}", cookies=boj_cookie)
-    elif qtype == QueryType.PROBLEM_CATEGORY:
+    elif wtype == Webpage.PROBLEM_CATEGORY:
         req = requests.get(f"https://acmicpc.net/step", cookies=boj_cookie)
-    elif qtype == QueryType.SUBMIT:
+    elif wtype == Webpage.SUBMIT:
         req = requests.get(f"https://acmicpc.net/submit/{id}", cookies=boj_cookie)
 
     if req.status_code == 404:
@@ -507,7 +507,7 @@ def print_usage():
 
 def print_problem_lists(id: int):
     try:
-        req = query_request(QueryType.PROBLEM_LIST, id)
+        req = get_webpage_of(Webpage.PROBLEM_LIST, id)
         previews = extract_all_problem_previews(req.text)
 
         for i in range(0, len(previews)):
@@ -520,7 +520,7 @@ def print_problem_lists(id: int):
 
 def print_problem_categories(id: int):
     try:
-        req = query_request(QueryType.PROBLEM_CATEGORY, id)
+        req = get_webpage_of(Webpage.PROBLEM_CATEGORY, id)
         categories = extract_all_problem_categories(req.text)
 
         for category in categories:
@@ -538,7 +538,7 @@ def print_problem_categories(id: int):
 
 def print_problem_details(id: int):
     try:
-        req = query_request(QueryType.PROBLEM, id)
+        req = get_webpage_of(Webpage.PROBLEM, id)
         detail = extract_problem_detail(req.text)
 
         template = Template(
@@ -580,7 +580,7 @@ def prepare_post_form(id: int, filename: str) -> SubmitForm:
         form = SubmitForm()
         form.problem_id = id
 
-        req = query_request(QueryType.SUBMIT, id)
+        req = get_webpage_of(Webpage.SUBMIT, id)
         form.csrf_key = extract_csrf_token(req.text)
 
         file_path = Path(filename)
