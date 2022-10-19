@@ -24,7 +24,7 @@ from html_extractors import (
     extract_csrf_token,
     extract_problem_detail,
     extract_submit_lists,
-    get_username
+    extract_username
 )
 
 PUSHER_TOKEN = "a2cb611847131e062b32"
@@ -43,11 +43,17 @@ def get_webpage_of(wtype: Webpage, id: int = -1) -> Response:
     elif wtype == Webpage.SUBMIT:
         req = requests.get(f"https://acmicpc.net/submit/{id}", cookies=boj_cookie)
 
-    print(get_username(req.text))
     if req.status_code == 404:
         raise ContentNotFound
+    if wtype == Webpage.SUBMIT and is_not_logged_in(req.text):
+        raise NotLoggedIn
     return req
 
+
+def is_not_logged_in(html: str) -> bool:
+    username = extract_username(html)
+    # https://peps.python.org/pep-0008/#programming-recommendations - Empty strings are falsy.
+    return username
 
 def print_problem_lists(id: int):
     try:
@@ -141,6 +147,8 @@ def prepare_post_form(id: int, filename: str) -> SubmitForm:
         return form
     except ContentNotFound:
         print("해당 번호와 일치하는 문제를 찾을 수 없습니다.")
+    except NotLoggedIn as e:
+        print(e)
     except Exception as e:
         raise e
 

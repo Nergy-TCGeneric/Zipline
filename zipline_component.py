@@ -448,3 +448,7 @@ class SubmitForm:
 class ContentNotFound(Exception):
     def __init__(self):
         super()
+
+class NotLoggedIn(Exception):
+    def __init__(self):
+        super().__init__("해당 작업은 로그인 된 상태에서만 이용할 수 있습니다. 사이트에 먼저 로그인해주세요.")
