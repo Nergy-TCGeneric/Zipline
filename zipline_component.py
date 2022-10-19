@@ -446,9 +446,25 @@ class SubmitForm:
 
 
 class ContentNotFound(Exception):
-    def __init__(self):
+    issued_webpage: Webpage
+
+    def __init__(self, page: Webpage):
+        self.issued_webpage = page
         super()
+
+    def __str__(self) -> str:
+        if self.issued_webpage == Webpage.PROBLEM:
+            return "해당 번호와 일치하는 문제를 찾을 수 없습니다."
+        elif self.issued_webpage == Webpage.PROBLEM_LIST:
+            return "해당 번호와 일치하는 단계별 문제 목록을 찾을 수 없습니다."
+        elif self.issued_webpage == Webpage.PROBLEM_CATEGORY:
+            return "해당 번호와 일치하는 문제 목록을 찾을 수 없습니다."
+        elif self.issued_webpage == Webpage.SUBMIT:
+            return "해당 번호와 일치하는 문제를 찾을 수 없습니다."
 
 class NotLoggedIn(Exception):
     def __init__(self):
-        super().__init__("해당 작업은 로그인 된 상태에서만 이용할 수 있습니다. 사이트에 먼저 로그인해주세요.")
+        super()
+
+    def __str__(self) -> str:
+        return "해당 작업은 로그인 된 상태에서만 이용할 수 있습니다. 사이트에 먼저 로그인해주세요."

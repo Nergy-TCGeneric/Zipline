@@ -44,9 +44,10 @@ def get_webpage_of(wtype: Webpage, id: int = -1) -> Response:
         req = requests.get(f"https://acmicpc.net/submit/{id}", cookies=boj_cookie)
 
     if req.status_code == 404:
-        raise ContentNotFound
+        raise ContentNotFound(wtype)
     if wtype == Webpage.SUBMIT and is_not_logged_in(req.text):
         raise NotLoggedIn
+
     return req
 
 
@@ -64,8 +65,6 @@ def print_problem_lists(id: int):
             print(
                 f"{i+1} {previews[i].title}({previews[i].id}) - {previews[i].accepted_submits}/{previews[i].submits}"
             )
-    except ContentNotFound:
-        print("해당 번호와 일치하는 문제 목록을 찾을 수 없습니다.")
     except Exception as e:
         raise e
 
@@ -84,8 +83,6 @@ def print_problem_categories(id: int):
             print(
                 f"{color}{category.id} {category.title} - ({category.solved_count}/{category.total_count}) \033[0m"
             )
-    except ContentNotFound:
-        print("해당 번호와 일치하는 단계별 문제 목록을 찾을 수 없습니다.")
     except Exception as e:
         raise e
 
@@ -125,8 +122,6 @@ def print_problem_details(id: int):
         )
 
         print(template)
-    except ContentNotFound:
-        print("해당 번호와 일치하는 문제를 찾을 수 없습니다.")
     except Exception as e:
         raise e
 
@@ -145,10 +140,6 @@ def prepare_post_form(id: int, filename: str) -> SubmitForm:
 
         form.code_open = get_code_open_selection_from_user()
         return form
-    except ContentNotFound:
-        print("해당 번호와 일치하는 문제를 찾을 수 없습니다.")
-    except NotLoggedIn as e:
-        print(e)
     except Exception as e:
         raise e
 
@@ -311,6 +302,8 @@ def execute_command(args: argparse.Namespace):
             show_judge_progress(submit_id)
     except KeyboardInterrupt:
         print("사용자가 조기에 프로그램을 종료했습니다.")
+    except Exception as e:
+        print(e)
 
 
 if __name__ == "__main__":
