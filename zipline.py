@@ -24,6 +24,7 @@ from html_extractors import (
     extract_csrf_token,
     extract_problem_detail,
     extract_submit_lists,
+    get_username
 )
 
 PUSHER_TOKEN = "a2cb611847131e062b32"
@@ -42,6 +43,7 @@ def get_webpage_of(wtype: Webpage, id: int = -1) -> Response:
     elif wtype == Webpage.SUBMIT:
         req = requests.get(f"https://acmicpc.net/submit/{id}", cookies=boj_cookie)
 
+    print(get_username(req.text))
     if req.status_code == 404:
         raise ContentNotFound
     return req
