@@ -54,8 +54,7 @@ def get_webpage_of(wtype: Webpage, id: int = -1) -> Response:
 
 def is_not_logged_in(html: str) -> bool:
     username = extract_username(html)
-    # https://peps.python.org/pep-0008/#programming-recommendations - Empty strings are falsy.
-    return username
+    return username is None
 
 
 def print_problem_lists(id: int):

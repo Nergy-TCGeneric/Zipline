@@ -261,9 +261,10 @@ def extract_submit_lists(html: str) -> list[namedtuple]:
     list_literal = _extract_submit_list_literal(html)
     return _parse_submit_list_literal(list_literal)
 
+
 def extract_username(html: str) -> str:
     # <meta name="username" content="blablabla">
-    start_index = html.find("\"username\"") + len("\"username\" content")
+    start_index = html.find('"username"') + len('"username" content')
     end_index = html.find(">", start_index)
     username = html[start_index:end_index]
 
