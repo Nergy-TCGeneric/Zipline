@@ -270,7 +270,7 @@ def extract_username(html: str) -> str:
     if username.startswith("="):
         return username[1:]
     else:
-        return ''
+        return None
 
 
 def _extract_submit_list_literal(html: str) -> str:

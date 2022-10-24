@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
     Zipline
     For who even don't want to open gui browsers just to do tedious works
@@ -24,7 +25,7 @@ from html_extractors import (
     extract_csrf_token,
     extract_problem_detail,
     extract_submit_lists,
-    extract_username
+    extract_username,
 )
 
 PUSHER_TOKEN = "a2cb611847131e062b32"
@@ -55,6 +56,7 @@ def is_not_logged_in(html: str) -> bool:
     username = extract_username(html)
     # https://peps.python.org/pep-0008/#programming-recommendations - Empty strings are falsy.
     return username
+
 
 def print_problem_lists(id: int):
     try:
@@ -216,8 +218,7 @@ def infer_language_from_file(file_path: Path) -> Language:
     elif len(candidates) == 1:
         return candidates[0]
     else:
-        # This is unreachable, since `get_candidates_from_extension` raises Exception if it failed to find candidates, making code fail early.
-        pass
+        raise CandidateNotFound(file_path.suffix)
 
 
 def prompt_user_select_languages(candidates: list[Language]) -> Language:

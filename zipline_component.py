@@ -462,9 +462,21 @@ class ContentNotFound(Exception):
         elif self.issued_webpage == Webpage.SUBMIT:
             return "해당 번호와 일치하는 문제를 찾을 수 없습니다."
 
+
 class NotLoggedIn(Exception):
     def __init__(self):
         super()
 
     def __str__(self) -> str:
         return "해당 작업은 로그인 된 상태에서만 이용할 수 있습니다. 사이트에 먼저 로그인해주세요."
+
+
+class CandidateNotFound(Exception):
+    extension: str
+
+    def __init__(self, ext: str):
+        self.extension = ext
+        super()
+
+    def __str__(self) -> str:
+        return f"백준에서 지원하지 않는 소스 파일인 것 같습니다 : {self.extension}"
