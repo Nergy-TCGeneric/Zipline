@@ -70,7 +70,7 @@ class ParserTestCase(unittest.TestCase):
         self.assertEqual(detail.input_desc, "없음")
         self.assertEqual(detail.output_desc, "Hello World!를 출력하시오.")
 
-    def test_should_fetch_every_data_to_prepare_solution_submit(self):
+    def test_should_get_csrf_token(self):
         html_reponse = get_html_response_of(Webpage.SUBMIT)
         if extract_username(html_reponse.text) == None:
             self.skipTest("user is not logged in, unable to proceed")
