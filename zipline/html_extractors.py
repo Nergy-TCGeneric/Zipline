@@ -268,10 +268,14 @@ def extract_username(html: str) -> str:
     end_index = html.find(">", start_index)
     username = html[start_index:end_index]
 
+    # Sometimes even if user is not logged in, it becomes ="" instead of None.
+    # Be aware that "" is not a blank string, but literal double quotes.
     if username.startswith("="):
-        return username[1:]
-    else:
+        username = username[1:]
+
+    if username == '""':
         return None
+    return username
 
 
 def _extract_submit_list_literal(html: str) -> str:
